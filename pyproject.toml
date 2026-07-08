@@ -1,0 +1,11 @@
+[project]
+name = "aws-enterprise-lab"
+version = "0.1.0"
+description = "CLI for managing the AWS Enterprise Lab"
+requires-python = ">=3.9"
+
+[tool.setuptools]
+packages = ["labctl"]
+
+[project.scripts]
+labctl = "labctl.main:main"

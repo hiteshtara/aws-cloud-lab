@@ -1,0 +1,2 @@
+[console_scripts]
+labctl = labctl.main:main

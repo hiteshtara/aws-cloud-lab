@@ -28,6 +28,12 @@ def logs_ecs():
 def cost():
     print("Estimated if ECS + ALB running: about $1.00-$1.50/day")
     print("Estimated if ECS stopped but ALB exists: about $0.60-$0.80/day")
+def start_rds():
+    run("aws rds start-db-instance --db-instance-identifier aws-cloud-lab-dev-postgres --output table")
+
+
+def stop_rds():
+    run("aws rds stop-db-instance --db-instance-identifier aws-cloud-lab-dev-postgres --output table")
 def deploy_api():
     print("Building CloudShop API image for linux/amd64...")
     api_dir = ROOT / "app" / "api"
@@ -125,7 +131,10 @@ def main():
     elif args.command == "deploy" and args.target == "api":
          deploy_api() 
     
-    
+    elif args.command == "start" and args.target == "rds":
+          start_rds()
+    elif args.command == "stop" and args.target == "rds":
+          stop_rds()
     else:
         print("Examples: ./labctl status | ./labctl start ecs | ./labctl stop ecs | ./labctl logs ecs | ./labctl cost")
 

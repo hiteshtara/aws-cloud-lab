@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: aws-enterprise-lab
+Version: 0.1.0
+Summary: CLI for managing the AWS Enterprise Lab
+Requires-Python: >=3.9

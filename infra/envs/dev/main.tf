@@ -145,3 +145,20 @@ output "ecs_cluster_name" {
 output "ecs_service_name" {
   value = module.ecs_fargate.ecs_service_name
 }
+module "rds_postgres" {
+  source = "../../../terraform/modules/rds-postgres"
+
+  project_name          = var.project_name
+  environment           = local.environment
+  vpc_id                = module.networking.vpc_id
+  private_subnet_ids    = module.networking.private_subnet_ids
+  ecs_security_group_id = module.ecs_fargate.ecs_security_group_id
+}
+
+output "db_endpoint" {
+  value = module.rds_postgres.db_endpoint
+}
+
+output "db_secret_arn" {
+  value = module.rds_postgres.db_secret_arn
+}
