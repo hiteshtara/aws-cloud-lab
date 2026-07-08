@@ -67,6 +67,45 @@ def deploy_api():
     )
 
     print("Deploy started. Wait 1-2 minutes, then run: ./labctl status")
+def deploy_api():
+    print("Building CloudShop API image for linux/amd64...")
+
+    api_dir = ROOT / "app" / "api"
+    image = "589744711110.dkr.ecr.us-east-1.amazonaws.com/aws-cloud-lab-dev-api:latest"
+
+    subprocess.run(
+        "docker buildx build --platform linux/amd64 -t cloudshop-api:latest --load .",
+        cwd=api_dir,
+        shell=True,
+        check=True,
+        text=True,
+    )
+
+    subprocess.run(
+        f"docker tag cloudshop-api:latest {image}",
+        shell=True,
+        check=True,
+        text=True,
+    )
+
+    subprocess.run(
+        f"docker push {image}",
+        shell=True,
+        check=True,
+        text=True,
+    )
+
+    subprocess.run(
+        "aws ecs update-service "
+        "--cluster aws-cloud-lab-dev-cluster "
+        "--service aws-cloud-lab-dev-api-service "
+        "--force-new-deployment",
+        shell=True,
+        check=True,
+        text=True,
+    )
+
+    print("Deploy started. Wait 1-2 minutes, then run: ./labctl status")
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["status", "start", "stop", "logs", "cost", "deploy"])
@@ -85,6 +124,8 @@ def main():
         cost()
     elif args.command == "deploy" and args.target == "api":
          deploy_api() 
+    
+    
     else:
         print("Examples: ./labctl status | ./labctl start ecs | ./labctl stop ecs | ./labctl logs ecs | ./labctl cost")
 
