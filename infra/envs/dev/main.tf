@@ -111,3 +111,37 @@ output "public_subnet_ids" {
 output "private_subnet_ids" {
   value = module.networking.private_subnet_ids
 }
+
+module "ecr" {
+  source = "../../../terraform/modules/ecr"
+
+  repository_name = "${local.name_prefix}-api"
+}
+
+output "ecr_repository_url" {
+  value = module.ecr.repository_url
+}
+
+module "ecs_fargate" {
+  source = "../../../terraform/modules/ecs-fargate"
+
+  project_name       = var.project_name
+  environment        = local.environment
+  vpc_id             = module.networking.vpc_id
+  public_subnet_ids  = module.networking.public_subnet_ids
+  private_subnet_ids = module.networking.private_subnet_ids
+
+  container_image = "${module.ecr.repository_url}:latest"
+}
+
+output "ecs_alb_dns_name" {
+  value = module.ecs_fargate.alb_dns_name
+}
+
+output "ecs_cluster_name" {
+  value = module.ecs_fargate.ecs_cluster_name
+}
+
+output "ecs_service_name" {
+  value = module.ecs_fargate.ecs_service_name
+}
