@@ -1,150 +1,106 @@
-#!/usr/bin/env python3
 import argparse
-import subprocess
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-DEV_DIR = ROOT / "infra" / "envs" / "dev"
+from labctl import terraform
+from labctl.aws import ecs, rds
+from labctl.commands.deploy import deploy_api
+from labctl.config import ALB_DNS
 
-def run(cmd):
-    return subprocess.run(cmd, cwd=DEV_DIR, shell=True, text=True).returncode
 
-def status():
+def show_status():
     print("AWS Enterprise Lab")
     print("==================")
-    run("terraform output")
     print()
-    run("aws ecs describe-services --cluster aws-cloud-lab-dev-cluster --services aws-cloud-lab-dev-api-service --query 'services[0].{status:status,desired:desiredCount,running:runningCount,pending:pendingCount}' --output table")
 
-def start_ecs():
-    run("aws ecs update-service --cluster aws-cloud-lab-dev-cluster --service aws-cloud-lab-dev-api-service --desired-count 1 --output table")
-def start_rds():
-    print("Starting RDS PostgreSQL...")
-    run("aws rds start-db-instance --db-instance-identifier aws-cloud-lab-dev-postgres --output table")
+    print("Terraform Outputs")
+    print("-----------------")
+    terraform.outputs()
+    print()
 
+    print("ECS")
+    print("---")
+    ecs.status()
+    print()
 
-def stop_rds():
-    print("Stopping RDS PostgreSQL...")
-    run("aws rds stop-db-instance --db-instance-identifier aws-cloud-lab-dev-postgres --output table")
-def stop_ecs():
-    run("aws ecs update-service --cluster aws-cloud-lab-dev-cluster --service aws-cloud-lab-dev-api-service --desired-count 0 --output table")
+    print("RDS")
+    print("---")
+    rds.status()
+    print()
 
-def logs_ecs():
-    run("aws logs tail /ecs/aws-cloud-lab-dev-api --since 30m")
+    print("Application")
+    print("-----------")
+    print(f"CloudShop API: http://{ALB_DNS}")
+
 
 def cost():
-    print("Estimated if ECS + ALB running: about $1.00-$1.50/day")
-    print("Estimated if ECS stopped but ALB exists: about $0.60-$0.80/day")
-def start_rds():
-    run("aws rds start-db-instance --db-instance-identifier aws-cloud-lab-dev-postgres --output table")
+    print("Estimated Daily Cost")
+    print("====================")
+    print("Foundation: near $0")
+    print("ECR: pennies")
+    print("ALB running: about $0.60-$0.80/day")
+    print("ECS 1 small Fargate task running: about $0.40-$0.60/day")
+    print("RDS db.t4g.micro running: about $0.50-$1.00/day")
+    print()
+    print("Use:")
+    print("  labctl stop ecs")
+    print("  labctl stop rds")
 
 
-def stop_rds():
-    run("aws rds stop-db-instance --db-instance-identifier aws-cloud-lab-dev-postgres --output table")
-def deploy_api():
-    print("Building CloudShop API image for linux/amd64...")
-    api_dir = ROOT / "app" / "api"
+def sleep_lab():
+    print("Putting lab to sleep...")
+    ecs.stop()
+    rds.stop()
+    print("Sleep command sent. ECS scales down quickly. RDS may take a few minutes.")
 
-    image = "589744711110.dkr.ecr.us-east-1.amazonaws.com/aws-cloud-lab-dev-api:latest"
 
-    subprocess.run(
-        "docker buildx build --platform linux/amd64 -t cloudshop-api:latest --load .",
-        cwd=api_dir,
-        shell=True,
-        check=True,
-        text=True
-    )
+def wake_lab():
+    print("Waking lab...")
+    rds.start()
+    ecs.start()
+    print("Wake command sent. RDS and ECS may take a few minutes.")
 
-    subprocess.run(
-        f"docker tag cloudshop-api:latest {image}",
-        shell=True,
-        check=True,
-        text=True
-    )
 
-    subprocess.run(
-        f"docker push {image}",
-        shell=True,
-        check=True,
-        text=True
-    )
-
-    subprocess.run(
-        "aws ecs update-service "
-        "--cluster aws-cloud-lab-dev-cluster "
-        "--service aws-cloud-lab-dev-api-service "
-        "--force-new-deployment",
-        shell=True,
-        check=True,
-        text=True
-    )
-
-    print("Deploy started. Wait 1-2 minutes, then run: ./labctl status")
-def deploy_api():
-    print("Building CloudShop API image for linux/amd64...")
-
-    api_dir = ROOT / "app" / "api"
-    image = "589744711110.dkr.ecr.us-east-1.amazonaws.com/aws-cloud-lab-dev-api:latest"
-
-    subprocess.run(
-        "docker buildx build --platform linux/amd64 -t cloudshop-api:latest --load .",
-        cwd=api_dir,
-        shell=True,
-        check=True,
-        text=True,
-    )
-
-    subprocess.run(
-        f"docker tag cloudshop-api:latest {image}",
-        shell=True,
-        check=True,
-        text=True,
-    )
-
-    subprocess.run(
-        f"docker push {image}",
-        shell=True,
-        check=True,
-        text=True,
-    )
-
-    subprocess.run(
-        "aws ecs update-service "
-        "--cluster aws-cloud-lab-dev-cluster "
-        "--service aws-cloud-lab-dev-api-service "
-        "--force-new-deployment",
-        shell=True,
-        check=True,
-        text=True,
-    )
-
-    print("Deploy started. Wait 1-2 minutes, then run: ./labctl status")
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["status", "start", "stop", "logs", "cost", "deploy"])
+    parser = argparse.ArgumentParser(description="AWS Enterprise Lab CLI")
+    parser.add_argument(
+        "command",
+        choices=["status", "start", "stop", "logs", "cost", "deploy", "sleep", "wake"],
+    )
     parser.add_argument("target", nargs="?")
+
     args = parser.parse_args()
 
     if args.command == "status":
-        status()
-    elif args.command == "start" and args.target == "ecs":
-        start_ecs()
-    elif args.command == "stop" and args.target == "ecs":
-        stop_ecs()
-    elif args.command == "logs" and args.target == "ecs":
-        logs_ecs()
+        show_status()
     elif args.command == "cost":
         cost()
-    elif args.command == "deploy" and args.target == "api":
-         deploy_api() 
-    
+    elif args.command == "sleep":
+        sleep_lab()
+    elif args.command == "wake":
+        wake_lab()
+    elif args.command == "start" and args.target == "ecs":
+        ecs.start()
+    elif args.command == "stop" and args.target == "ecs":
+        ecs.stop()
+    elif args.command == "logs" and args.target == "ecs":
+        ecs.logs()
     elif args.command == "start" and args.target == "rds":
-          start_rds()
+        rds.start()
     elif args.command == "stop" and args.target == "rds":
-          stop_rds()
-    
+        rds.stop()
+    elif args.command == "deploy" and args.target == "api":
+        deploy_api()
     else:
-        print("Examples: ./labctl status | ./labctl start ecs | ./labctl stop ecs | ./labctl logs ecs | ./labctl cost")
+        print("Examples:")
+        print("  labctl status")
+        print("  labctl deploy api")
+        print("  labctl start ecs")
+        print("  labctl stop ecs")
+        print("  labctl start rds")
+        print("  labctl stop rds")
+        print("  labctl sleep")
+        print("  labctl wake")
+        print("  labctl cost")
+
 
 if __name__ == "__main__":
     main()
