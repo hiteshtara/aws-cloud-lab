@@ -5,3 +5,4 @@
 *.zip
 .env
 .DS_Store
+aws_enterprise_lab.egg-info/

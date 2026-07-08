@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-aws_enterprise_lab.egg-info/PKG-INFO
-aws_enterprise_lab.egg-info/SOURCES.txt
-aws_enterprise_lab.egg-info/dependency_links.txt
-aws_enterprise_lab.egg-info/entry_points.txt
-aws_enterprise_lab.egg-info/top_level.txt
-labctl/__init__.py
-labctl/main.py

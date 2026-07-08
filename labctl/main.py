@@ -18,7 +18,14 @@ def status():
 
 def start_ecs():
     run("aws ecs update-service --cluster aws-cloud-lab-dev-cluster --service aws-cloud-lab-dev-api-service --desired-count 1 --output table")
+def start_rds():
+    print("Starting RDS PostgreSQL...")
+    run("aws rds start-db-instance --db-instance-identifier aws-cloud-lab-dev-postgres --output table")
 
+
+def stop_rds():
+    print("Stopping RDS PostgreSQL...")
+    run("aws rds stop-db-instance --db-instance-identifier aws-cloud-lab-dev-postgres --output table")
 def stop_ecs():
     run("aws ecs update-service --cluster aws-cloud-lab-dev-cluster --service aws-cloud-lab-dev-api-service --desired-count 0 --output table")
 
@@ -135,6 +142,7 @@ def main():
           start_rds()
     elif args.command == "stop" and args.target == "rds":
           stop_rds()
+    
     else:
         print("Examples: ./labctl status | ./labctl start ecs | ./labctl stop ecs | ./labctl logs ecs | ./labctl cost")
 
