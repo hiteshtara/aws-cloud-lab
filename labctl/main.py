@@ -11,11 +11,6 @@ def show_status():
     print("==================")
     print()
 
-    print("Terraform Outputs")
-    print("-----------------")
-    terraform.outputs()
-    print()
-
     print("ECS")
     print("---")
     ecs.status()
@@ -29,7 +24,10 @@ def show_status():
     print("Application")
     print("-----------")
     print(f"CloudShop API: http://{ALB_DNS}")
-
+    print()
+    print("Cost Control")
+    print("------------")
+    print("Use 'labctl sleep' to stop ECS and RDS.")
 
 def cost():
     print("Estimated Daily Cost")
