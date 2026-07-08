@@ -1,5 +1,5 @@
 import argparse
-
+import urllib.request
 from labctl import terraform
 from labctl.aws import ecs, rds
 from labctl.commands.deploy import deploy_api
@@ -28,7 +28,21 @@ def show_status():
     print("Cost Control")
     print("------------")
     print("Use 'labctl sleep' to stop ECS and RDS.")
+def health():
+    print("Health Checks")
+    print("=============")
 
+    urls = {
+        "Lambda API": "https://exqyv6tum4.execute-api.us-east-1.amazonaws.com/dev/health",
+        "ECS API": f"http://{ALB_DNS}/health",
+    }
+
+    for name, url in urls.items():
+        try:
+            with urllib.request.urlopen(url, timeout=5) as response:
+                print(f"{name}: OK ({response.status})")
+        except Exception as e:
+            print(f"{name}: FAIL ({e})")
 def cost():
     print("Estimated Daily Cost")
     print("====================")
@@ -60,9 +74,19 @@ def wake_lab():
 def main():
     parser = argparse.ArgumentParser(description="AWS Enterprise Lab CLI")
     parser.add_argument(
-        "command",
-        choices=["status", "start", "stop", "logs", "cost", "deploy", "sleep", "wake"],
-    )
+    "command",
+    choices=[
+        "status",
+        "start",
+        "stop",
+        "logs",
+        "cost",
+        "deploy",
+        "sleep",
+        "wake",
+        "health"
+    ],
+)
     parser.add_argument("target", nargs="?")
 
     args = parser.parse_args()
@@ -85,6 +109,8 @@ def main():
         rds.start()
     elif args.command == "stop" and args.target == "rds":
         rds.stop()
+    elif args.command == "health":
+        health()
     elif args.command == "deploy" and args.target == "api":
         deploy_api()
     else:
