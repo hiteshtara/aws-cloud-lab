@@ -130,7 +130,46 @@ resource "aws_iam_role_policy_attachment" "task_execution" {
   role       = aws_iam_role.task_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
+variable "db_secret_arn" {
+  type = string
+}
 
+variable "db_host" {
+  type = string
+}
+
+resource "aws_iam_role" "task" {
+  name = "${local.name_prefix}-ecs-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = "sts:AssumeRole"
+      Principal = {
+        Service = "ecs-tasks.amazonaws.com"
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "task_secrets" {
+  name = "${local.name_prefix}-ecs-task-secrets-policy"
+  role = aws_iam_role.task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = var.db_secret_arn
+      }
+    ]
+  })
+}
 resource "aws_ecs_task_definition" "api" {
   family                   = "${local.name_prefix}-api"
   requires_compatibilities = ["FARGATE"]
@@ -138,13 +177,31 @@ resource "aws_ecs_task_definition" "api" {
   cpu                      = "256"
   memory                   = "512"
   execution_role_arn       = aws_iam_role.task_execution.arn
+  task_role_arn = aws_iam_role.task.arn
 
   container_definitions = jsonencode([
     {
       name      = "cloudshop-api"
       image     = var.container_image
       essential = true
-
+environment = [
+  {
+    name  = "DB_HOST"
+    value = var.db_host
+  },
+  {
+    name  = "DB_NAME"
+    value = "cloudshop"
+  },
+  {
+    name  = "DB_SECRET_ARN"
+    value = var.db_secret_arn
+  },
+  {
+    name  = "AWS_REGION"
+    value = "us-east-1"
+  }
+]
       portMappings = [
         {
           containerPort = local.container_port

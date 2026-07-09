@@ -130,8 +130,9 @@ module "ecs_fargate" {
   vpc_id             = module.networking.vpc_id
   public_subnet_ids  = module.networking.public_subnet_ids
   private_subnet_ids = module.networking.private_subnet_ids
-
-  container_image = "${module.ecr.repository_url}:latest"
+  db_host            = module.rds_postgres.db_endpoint
+  db_secret_arn      = module.rds_postgres.db_secret_arn
+  container_image    = "${module.ecr.repository_url}:v2"
 }
 
 output "ecs_alb_dns_name" {
